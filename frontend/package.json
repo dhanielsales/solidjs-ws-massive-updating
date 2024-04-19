@@ -1,7 +1,7 @@
 {
-  "name": "solid-tailwind-ts-vite-template",
+  "name": "frontend",
   "version": "1.0.0",
-  "author": "AR10",
+  "author": "Dhaniel Sales <contact@dhanielsales.com.br>",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
