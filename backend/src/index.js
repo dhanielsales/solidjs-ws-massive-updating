@@ -1,29 +1,47 @@
-const express = require('express');
-const cors = require('cors');
+const { WebSocketServer } = require('ws');
 
-const server = express();
-server.use(express.json());
-server.use(cors());
+const wss = new WebSocketServer({ port: 8080 });
 
-function getRandom(min, max) {
-  return Math.random() * (max - min) + min;
-}
+const itemsNumber = 10000
+const items = Array.from(Array(itemsNumber), (_, x) => x).map((id) => ({ id: id + 1, value: 0, status: "blue" }));
 
-server.get('/', async (_, response) => {
-  const delay = getRandom(50, 300)
-  const result = getRandom(1, 100)
-  const status = result > 80
-    ? "red" : result > 60
-      ? "orange" : result > 30
-        ? "green"
-        : "blue";
+wss.on('connection', async (ws) => {
+  ws.on('error', console.error);
 
-  await new Promise(resolve => setTimeout(() => resolve(), delay))
+  ws.on('message', function message(data) {
+    console.log('received: %s', data);
+  });
 
-  return response.status(200).json({
-    value: Number(result.toFixed(0)),
-    status
-  })
+  ws.send(Buffer.from(JSON.stringify({ type: "start", data: items })));
+
+  await updateRandow(ws)
 });
 
-server.listen(3001, () => console.log('Server listen at port 3001'));
+function getRandom(min, max) {
+  return Number((Math.random() * (max - min) + min).toFixed(0));
+}
+
+async function updateRandow(ws) {
+  setInterval(async () => {
+    const updateCount = getRandom(1, itemsNumber / 2)
+
+    const update = Array.from({ length: updateCount }).map(async (_, index) => {
+      const value = getRandom(1, 100)
+      const id = getRandom(1, itemsNumber)
+      const data = {
+        id: id,
+        value: value,
+        status: value > 80
+          ? "red" : value > 60
+            ? "orange" : value > 30
+              ? "green"
+              : "blue"
+      }
+
+      ws.send(Buffer.from(JSON.stringify({ type: "update", data })));
+      return
+    })
+
+    await Promise.all(update)
+  }, 1000)
+}
